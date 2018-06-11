@@ -21,12 +21,15 @@ An outline of the app:
  - Logged-in users will return to an "everything-else" page.
  - Users must provide a repo name.
  - The everything-else page will display any existing Word records it finds in the repo, in alphabetical order.
+ - Users can click on a word in the list to view its definition.
+ - The definition will be fetched by the client and displayed on the everything else page.
+ - It's an implementation detail whether the client fetches from the app server or an external server.
  - Users can submit a new word to add to the herd.
- - New words will be provisionally added to the herd in a "pending" state.
+ - On the client side, the word will be provisionally added to the herd list in a "pending" state.
  - On the server side, the word will be looked up at e.g. wiktionary.
  - Word lookup will be async in the background.
- - When a word lookup succeeds, it will be written as a Word record, with its definition, to the repo.
+ - When a word lookup succeeds, it will be written as a Word record to the repo.
  - When a word lookup fails, it will not be added.
- - Either way, the client will be notified and the everything-else page will be updated.
+ - Either way, the client will be notified and the everything-else page will be updated sensibly.
  - Users can log out from the everything-else page.
  - This will invalidate their OAuth token and return them to the "welcome" page.
