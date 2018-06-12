@@ -11,6 +11,7 @@ class WordHerdServerApplicationTests {
 
 	@Test
 	fun contextLoads() {
+
 	}
 
 }
