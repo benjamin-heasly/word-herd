@@ -35,10 +35,21 @@ compileTestKotlin {
     }
 }
 
+task buildClient(type: Exec) {
+    workingDir("../word-herd-client")
+    commandLine("npm", "run", "build")
+}
+
+processResources {
+    from ('../word-herd-client/build') {
+        into 'static'
+    }
+}
+processResources.dependsOn(buildClient)
+
 repositories {
     mavenCentral()
 }
-
 
 dependencies {
     compile('org.springframework.boot:spring-boot-starter-websocket')
