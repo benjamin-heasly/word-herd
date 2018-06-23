@@ -7,9 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.messaging.converter.MessageConverter
-import org.springframework.messaging.simp.stomp.StompFrameHandler
 import org.springframework.messaging.simp.stomp.StompHeaders
-import org.springframework.messaging.simp.stomp.StompSession
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.junit4.SpringRunner
@@ -33,26 +31,10 @@ class WordWebsocketTests {
     lateinit var wordRepository: WordRepository
 
     @Autowired
-    lateinit var wordEntrypoint: WordEntrypoint
+    lateinit var wordController: WordController
 
     @Autowired
     lateinit var messageConverter: MessageConverter
-
-    @Test
-    @DirtiesContext
-    fun entrypointAddsToRepository() {
-        wordEntrypoint.addWord("a")
-        assertEquals(setOf("a"), wordRepository.all())
-    }
-
-    @Test
-    @DirtiesContext
-    fun clientAddsToRepository() {
-        val session = stompSession()
-        session.send("/app/add-word", "a")
-        Thread.sleep(1000)
-        assertEquals(setOf("a"), wordRepository.all())
-    }
 
     fun stompClient(): WebSocketStompClient {
         val client = WebSocketStompClient(SockJsClient(listOf(WebSocketTransport(StandardWebSocketClient()))))
@@ -60,65 +42,149 @@ class WordWebsocketTests {
         return client
     }
 
-    fun stompSession(): StompSession {
-        val url = "ws://localhost:$port/words"
-        return stompClient().connect(url, object : StompSessionHandlerAdapter() {}).get(1, TimeUnit.SECONDS)
-    }
-
-    @Test
-    @DirtiesContext
-    fun clientSubscribeToAdditionsFromSelf() {
-        val session = stompSession()
-        val handler = WordFrameHandler(1)
-        session.subscribe("/topic/added-word", handler)
-        session.send("/app/add-word", "a")
-        handler.wait()
-        assertEquals(setOf("a"), handler.all())
-        assertEquals(setOf("a"), wordRepository.all())
-    }
-
-    private class WordFrameHandler(val count: Int) : StompFrameHandler {
+    open class WordHandler(count: Int) : StompSessionHandlerAdapter() {
         val latch = CountDownLatch(count)
-        fun wait() = latch.await(2, TimeUnit.SECONDS)
+        fun await() = latch.await(5, TimeUnit.SECONDS)
 
-        val payloadsSeen: MutableSet<String> = ConcurrentSkipListSet()
-        fun all() = payloadsSeen.toSet()
+        val words: MutableSet<String> = ConcurrentSkipListSet()
+        fun wordsHandled() = words.toSet()
 
         override fun handleFrame(headers: StompHeaders, payload: Any?) {
-            payloadsSeen.add(payload as String)
+            println("handle word: $payload")
+            words.add(payload as String)
             latch.countDown()
         }
 
         override fun getPayloadType(headers: StompHeaders): Type = String::class.java
     }
 
-    @Test
-    @DirtiesContext
-    fun clientSubscribeToAdditionsFromOtherClient() {
-        val otherSession = stompSession()
+    class WordListHandler(count: Int) : WordHandler(count) {
+        override fun handleFrame(headers: StompHeaders, payload: Any?) {
+            println("handle word list: $payload")
+            val wordList = payload as List<String>
+            wordList.forEach { words.add(it) }
+            latch.countDown()
+        }
 
-        val session = stompSession()
-        val handler = WordFrameHandler(2)
-        session.subscribe("/topic/added-word", handler)
-        otherSession.send("/app/add-word", "a")
-        session.send("/app/add-word", "b")
-        handler.wait()
-        assertEquals(setOf("a", "b"), wordRepository.all())
-        assertEquals(setOf("a", "b"), handler.all())
+        override fun getPayloadType(headers: StompHeaders): Type = List::class.java
+    }
+
+    class WordSession(port: Int, client: WebSocketStompClient, expectedNewWordCount: Int) {
+        val allHandler = WordListHandler(1)
+        val newHandler = WordHandler(expectedNewWordCount)
+        val session = client
+            .connect("ws://localhost:$port/words", WordHandler(0))
+            .get(5, TimeUnit.SECONDS)
+
+        fun subscribe() {
+            session.subscribe("/topic/new", newHandler)
+            session.subscribe("/app/all", allHandler)
+            allHandler.await()
+        }
+
+        fun send(word: String) = session.send("/app/add", word)
     }
 
     @Test
     @DirtiesContext
-    fun clientSubscribeToAdditionsFromServer() {
-        val session = stompSession()
-        val handler = WordFrameHandler(2)
-        session.subscribe("/topic/added-word", handler)
-        // TODO: client is not seeing "a"
-        // TODO: why is this different from clientSubscribeToAdditionsFromOtherClient?
-        wordEntrypoint.addWord("a")
-        session.send("/app/add-word", "b")
-        handler.wait()
-        assertEquals(setOf("a", "b"), wordRepository.all())
-        assertEquals(setOf("a", "b"), handler.all())
+    fun controllerAddToRepository() {
+        wordController.addWord("a")
+        assertEquals(setOf("a"), wordRepository.all())
     }
+
+    @Test
+    @DirtiesContext
+    fun clientAddToRepository() {
+        val session = WordSession(port!!, stompClient(), 0)
+        session.send("a")
+        session.subscribe()
+        assertEquals(setOf("a"), wordRepository.all())
+    }
+
+    @Test
+    @DirtiesContext
+    fun clientReceivesExistingWordsOnSubscription() {
+        wordRepository.add("existing1")
+        wordRepository.add("existing2")
+
+        val session = WordSession(port!!, stompClient(), 0)
+        session.subscribe()
+        assertEquals(setOf("existing1", "existing2"), wordRepository.all())
+        assertEquals(setOf("existing1", "existing2"), session.allHandler.wordsHandled())
+    }
+
+    @Test
+    @DirtiesContext
+    fun clientSubscriptionFromSelf() {
+        val session = WordSession(port!!, stompClient(), 2)
+        session.subscribe()
+
+        session.send("self1")
+        session.send("self2")
+        session.newHandler.await()
+
+        assertEquals(setOf("self1", "self2"), wordRepository.all())
+        assertEquals(setOf("self1", "self2"), session.newHandler.wordsHandled())
+    }
+
+    @Test
+    @DirtiesContext
+    fun clientSubscriptionFromOther() {
+        val session = WordSession(port!!, stompClient(), 2)
+        session.subscribe()
+
+        val other = WordSession(port!!, stompClient(), 0)
+        other.send("other1")
+        other.send("other2")
+        session.newHandler.await()
+
+        assertEquals(setOf("other1", "other2"), wordRepository.all())
+        assertEquals(setOf("other1", "other2"), session.newHandler.wordsHandled())
+    }
+
+    @Test
+    @DirtiesContext
+    fun clientSubscriptionFromServerInternal() {
+        val session = WordSession(port!!, stompClient(), 2)
+        session.subscribe()
+
+        wordController.addWord("server1")
+        wordController.addWord("server2")
+        session.newHandler.await()
+
+        assertEquals(setOf("server1", "server2"), session.newHandler.wordsHandled())
+        assertEquals(setOf("server1", "server2"), wordRepository.all())
+    }
+
+    @Test
+    @DirtiesContext
+    fun clientSubscriptionFromVariousSources() {
+        wordRepository.add("existing1")
+        wordRepository.add("existing2")
+
+        val session = WordSession(port!!, stompClient(), 6)
+        session.subscribe()
+        session.send("self1")
+        session.send("self2")
+
+        val other = WordSession(port!!, stompClient(), 0)
+        other.send("other1")
+        other.send("other2")
+
+        wordController.addWord("server1")
+        wordController.addWord("server2")
+
+        session.newHandler.await()
+
+        assertEquals(setOf("existing1", "existing2"), session.allHandler.wordsHandled())
+        assertEquals(
+            setOf("self1", "self2", "other1", "other2", "server1", "server2"),
+            session.newHandler.wordsHandled()
+        )
+        assertEquals(
+            setOf("existing1", "existing2", "self1", "self2", "other1", "other2", "server1", "server2"),
+            wordRepository.all()
+        )
+    }
+
 }
