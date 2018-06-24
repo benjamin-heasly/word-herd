@@ -50,27 +50,19 @@ class WordWebsocketTests {
         fun wordsHandled() = words.toSet()
 
         override fun handleFrame(headers: StompHeaders, payload: Any?) {
-            println("handle word: $payload")
-            words.add(payload as String)
-            latch.countDown()
-        }
-
-        override fun getPayloadType(headers: StompHeaders): Type = String::class.java
-    }
-
-    class WordListHandler(count: Int) : WordHandler(count) {
-        override fun handleFrame(headers: StompHeaders, payload: Any?) {
-            println("handle word list: $payload")
+            println("handle words: $payload")
             val wordList = payload as List<String>
-            wordList.forEach { words.add(it) }
-            latch.countDown()
+            wordList.forEach {
+                words.add(it)
+                latch.countDown()
+            }
         }
 
         override fun getPayloadType(headers: StompHeaders): Type = List::class.java
     }
 
     class WordSession(port: Int, client: WebSocketStompClient, expectedNewWordCount: Int) {
-        val allHandler = WordListHandler(1)
+        val allHandler = WordHandler(1)
         val newHandler = WordHandler(expectedNewWordCount)
         val session = client
             .connect("ws://localhost:$port/words", WordHandler(0))

@@ -20,11 +20,8 @@ class WordInput extends Component {
 
   handleSubmit(event) {
     const word = this.state.word;
-
-    const isAdded = this.props.addWord(word);
-    if (isAdded) {
-      this.setState({word: "",});
-    }
+    this.props.submitWord(word);
+    this.setState({word: "",});
 
     event.preventDefault();
   }

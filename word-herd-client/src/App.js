@@ -1,27 +1,22 @@
 import React, { Component } from 'react';
+import { PageHeader } from 'react-bootstrap';
 import logo from './logo.png';
 import './App.css';
 import WordInput from './components/WordInput';
 import WordList from './components/WordList';
-import { PageHeader } from 'react-bootstrap';
+import WordSocket from './components/WordSocket';
 
 class App extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      words: ["aardvark", "zoop", "frg"]
-    }
+    this.state = { words: [] }
+
+    this.handleWordSubmitted = this.handleWordSubmitted.bind(this);
   }
 
-  addWord(word) {
-    const words = this.state.words;
-
-    if ( words.indexOf(word) === -1) {
-      this.setState({words: this.state.words.concat([word])});
-      return true;
-    }
-    return false;
+  handleWordSubmitted(word) {
+    this.submit(word);
   }
 
   render() {
@@ -30,13 +25,17 @@ class App extends Component {
         <PageHeader className="App-header">
           <img src={logo} className="App-logo" alt="logo" />
         </PageHeader>
-        <p className="App-intro"> This is your Word Herd. </p>
+
+        <WordSocket
+          setWords={(allWords) => this.setState({ words: allWords })}
+          addWord={(word) => this.setState({words: this.state.words.concat([word])})}
+          setSubmit={ (submit) => this.submit=submit }/>
+
         <WordList
-          words={this.state.words}
-        />
+          words={this.state.words} />
+
         <WordInput
-          addWord={(word) => this.addWord(word)}
-        />
+          submitWord={(word) => this.handleWordSubmitted(word)} />
       </div>
     );
   }

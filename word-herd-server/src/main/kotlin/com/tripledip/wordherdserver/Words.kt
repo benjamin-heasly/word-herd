@@ -28,9 +28,9 @@ class WordController(val wordRepository: WordRepository, val template: SimpMessa
     }
 
     @MessageMapping("/add")
-    fun addWord(word: String): String {
+    fun addWord(word: String): List<String> {
         println("addWord: $word")
-        if (wordRepository.add(word)) template.convertAndSend("/topic/new", word)
-        return word
+        if (wordRepository.add(word)) template.convertAndSend("/topic/new", listOf(word))
+        return listOf(word)
     }
 }
