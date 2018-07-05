@@ -42,7 +42,7 @@ task buildClient(type: Exec) {
 
 processResources {
     from ('../word-herd-client/build') {
-        into 'static'
+        into 'static/word-herd'
     }
 }
 processResources.dependsOn(buildClient)

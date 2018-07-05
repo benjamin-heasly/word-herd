@@ -2,6 +2,7 @@
   "name": "word-herd-client",
   "version": "0.1.0",
   "private": true,
+  "homepage": ".",
   "dependencies": {
     "bootstrap": "^3.3.7",
     "react": "^16.4.1",
