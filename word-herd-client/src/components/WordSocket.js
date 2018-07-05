@@ -36,13 +36,14 @@ class WordSocket extends Component {
   render() {
     const connected = this.state.connected;
     const statusLabel = connected ? "This is your Word Herd." : "Connecting..."
+    const websocketUrl = "http://lvh.me:8080/words";
 
     return (
       <div className="WordSocket">
         <p>{statusLabel}</p>
 
         <SockJsClient
-          url='http://localhost:8080/words'
+          url={websocketUrl}
           topics={['/app/all' , '/topic/new']}
           onMessage={ this.handleMessage }
           onConnect={ () => {this.setState({connected: true})} }

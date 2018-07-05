@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { PageHeader } from 'react-bootstrap';
+import { PageHeader, Button } from 'react-bootstrap';
 import logo from './logo.png';
 import './App.css';
 import WordInput from './components/WordInput';
@@ -36,6 +36,10 @@ class App extends Component {
 
         <WordInput
           submitWord={(word) => this.handleWordSubmitted(word)} />
+
+        <form action="/logout" method="post" >
+          <Button type="submit">Log Out</Button>
+        </form>
       </div>
     );
   }

@@ -52,9 +52,14 @@ repositories {
 }
 
 dependencies {
+    compile('org.springframework.boot:spring-boot-starter-security')
+    compile('org.springframework.security:spring-security-oauth2-client')
+
     compile('org.springframework.boot:spring-boot-starter-websocket')
+
     compile("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     compile("org.jetbrains.kotlin:kotlin-reflect")
 
     testCompile('org.springframework.boot:spring-boot-starter-test')
+    testCompile('org.springframework.security:spring-security-test')
 }
