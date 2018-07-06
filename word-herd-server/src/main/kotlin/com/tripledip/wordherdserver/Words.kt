@@ -5,6 +5,10 @@ import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.messaging.simp.annotation.SubscribeMapping
 import org.springframework.stereotype.Controller
 import org.springframework.stereotype.Repository
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
+import java.security.Principal
 import java.util.concurrent.ConcurrentSkipListSet
 
 interface WordRepository {
@@ -19,17 +23,26 @@ class InMemoryWordRepository : WordRepository {
     override fun add(word: String): Boolean = words.contains(word) || words.add(word)
 }
 
+@RestController
+class AuthenticationChecker {
+    @GetMapping("/checkAuth")
+    fun checkAuth(principal: Principal): String {
+        println("checkAuth for ${principal.name}")
+        return "If you can read this, you are authenticated."
+    }
+}
+
 @Controller
 class WordController(val wordRepository: WordRepository, val template: SimpMessagingTemplate) {
     @SubscribeMapping("/all")
-    fun startSubscription(): List<String> {
-        println("all")
+    fun startSubscription(principal: Principal): List<String> {
+        println("all for ${principal.name}")
         return wordRepository.all().toList()
     }
 
     @MessageMapping("/add")
-    fun addWord(word: String): List<String> {
-        println("addWord: $word")
+    fun addWord(word: String, principal: Principal): List<String> {
+        println("addWord: $word for ${principal.name}")
         if (wordRepository.add(word)) template.convertAndSend("/topic/new", listOf(word))
         return listOf(word)
     }

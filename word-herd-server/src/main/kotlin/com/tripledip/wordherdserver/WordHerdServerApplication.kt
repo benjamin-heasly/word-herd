@@ -23,14 +23,11 @@ class SecurityConfig : WebSecurityConfigurerAdapter() {
 
     override fun configure(http: HttpSecurity) {
         http.authorizeRequests()
-            .antMatchers("/login.html").permitAll()
-            .anyRequest().authenticated()
-            .and()
-            .csrf().ignoringAntMatchers("/logout")
-            .and()
-            .oauth2Login().loginPage("/login.html").successHandler(SimpleUrlAuthenticationSuccessHandler("/word-herd/index.html"))
-            .and()
-            .logout().logoutSuccessUrl("/login.html").permitAll()
+            .antMatchers("/", "/static/**", "/favicon.ico").permitAll()
+            .anyRequest().authenticated().and()
+            .csrf().ignoringAntMatchers("/logout").and()
+            .oauth2Login().loginPage("/").defaultSuccessUrl("/", true).and()
+            .logout().logoutSuccessUrl("/")
     }
 }
 
@@ -46,7 +43,7 @@ class WebsocketConfig : WebSocketMessageBrokerConfigurer {
     override fun registerStompEndpoints(registry: StompEndpointRegistry) {
         registry
             .addEndpoint("/words")
-            .setAllowedOrigins("http://localhost:3000", "http://localhost:8080", "http://lvh.me:8080")
+            .setAllowedOrigins("http://localhost:3000", "http://lvh.me:8080")
             .withSockJS()
     }
 }

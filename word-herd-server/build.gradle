@@ -42,7 +42,7 @@ task buildClient(type: Exec) {
 
 processResources {
     from ('../word-herd-client/build') {
-        into 'static/word-herd'
+        into 'static'
     }
 }
 processResources.dependsOn(buildClient)
@@ -55,6 +55,7 @@ dependencies {
     compile('org.springframework.boot:spring-boot-starter-security')
     compile('org.springframework.security:spring-security-oauth2-client')
 
+    compile('org.springframework.boot:spring-boot-starter-web')
     compile('org.springframework.boot:spring-boot-starter-websocket')
 
     compile("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
