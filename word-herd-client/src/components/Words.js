@@ -37,16 +37,18 @@ class Words extends Component {
   }
 
   componentDidMount() {
-    fetch("http://lvh.me:8080/checkAuth", { redirect: "error", credentials: "same-origin" })
+    const checkAuthUrl = `${process.env.REACT_APP_WORD_HERD_API_ROOT}/checkAuth`;
+    fetch(checkAuthUrl, { redirect: "manual", credentials: "include" })
       .then(response => { this.setState({ authenticated: response.ok }) });
   }
 
   render() {
+      const loginUrl = `${process.env.REACT_APP_WORD_HERD_API_ROOT}/oauth2/authorization/github`;
       const authenticated = this.state.authenticated;
       if (!authenticated) {
         return (
           <div className="Words">
-            <Button bsStyle="primary" bsSize="large" href="/oauth2/authorization/github">Login with GitHub</Button>
+            <Button bsStyle="primary" bsSize="large" href={loginUrl}>Login with GitHub</Button>
           </div>
         );
       }
@@ -72,7 +74,8 @@ class Words extends Component {
         </div>;
     }
 
-    const websocketUrl = "http://lvh.me:8080/words";
+    const websocketUrl = `${process.env.REACT_APP_WORD_HERD_API_ROOT}/words`;
+    const logoutUrl = `${process.env.REACT_APP_WORD_HERD_API_ROOT}/logout`;
 
     return (
       <div className="Words">
@@ -86,7 +89,7 @@ class Words extends Component {
 
         {controls}
 
-        <form action="/logout" method="post" >
+        <form action={logoutUrl} method="post" >
           <Button type="submit">Log Out</Button>
         </form>
       </div>

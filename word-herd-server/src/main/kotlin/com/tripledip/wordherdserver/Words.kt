@@ -20,7 +20,7 @@ interface WordRepository {
 class InMemoryWordRepository : WordRepository {
     private val words: MutableSet<String> = ConcurrentSkipListSet()
     override fun all(): Set<String> = words.toSet()
-    override fun add(word: String): Boolean = words.contains(word) || words.add(word)
+    override fun add(word: String): Boolean = words.add(word)
 }
 
 @RestController
@@ -47,3 +47,10 @@ class WordController(val wordRepository: WordRepository, val template: SimpMessa
         return listOf(word)
     }
 }
+
+
+// TODO:
+// The tests are probably broken by oauth stuff.  Fix them with fake auth test support.
+// Scope repositories per user, with a registry by user id
+// Add tests with independent users
+// Expose UI ROOT property to allow react app cross-origin

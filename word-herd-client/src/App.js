@@ -20,5 +20,4 @@ class App extends Component {
 export default App;
 
 // todo
-// externalize server url
 // get this stuff pretty-printed
