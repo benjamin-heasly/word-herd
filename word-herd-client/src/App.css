@@ -12,10 +12,22 @@
 }
 
 @keyframes App-logo-slide {
-  0% { transform: translate(-100px, 10px); }
-  20% { transform: translate(50px, -10px); }
-  40% { transform: translate(100px, 10px); }
-  60% { transform: translate(-50px, -10px); }
-  80% { transform: translate(150px, 20px); }
-  100% { transform: rotate(-100px, 10px); }
+  0% {
+    transform: translate(-100px, 10px);
+  }
+  20% {
+    transform: translate(50px, -10px);
+  }
+  40% {
+    transform: translate(100px, 10px);
+  }
+  60% {
+    transform: translate(-50px, -10px);
+  }
+  80% {
+    transform: translate(150px, 20px);
+  }
+  100% {
+    transform: rotate(-100px, 10px);
+  }
 }
