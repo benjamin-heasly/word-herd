@@ -1,7 +1,6 @@
 package com.tripledip.wordherdserver
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.springframework.beans.factory.annotation.Autowired
@@ -26,7 +25,7 @@ class InMemoryWordRepositoryTests {
     @Test
     fun add() {
         assertTrue(wordRepository.add("a"))
-        assertTrue(wordRepository.add("a"))
+        assertFalse(wordRepository.add("a"))
         assertTrue(wordRepository.add("b"))
     }
 

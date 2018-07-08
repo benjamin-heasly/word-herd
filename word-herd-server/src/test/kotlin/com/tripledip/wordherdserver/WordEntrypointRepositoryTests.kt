@@ -6,22 +6,30 @@ import org.junit.runner.RunWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.web.server.LocalServerPort
+import org.springframework.http.MediaType
 import org.springframework.messaging.converter.MessageConverter
 import org.springframework.messaging.simp.stomp.StompHeaders
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter
 import org.springframework.test.annotation.DirtiesContext
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.junit4.SpringRunner
+import org.springframework.web.socket.WebSocketHttpHeaders
 import org.springframework.web.socket.client.standard.StandardWebSocketClient
 import org.springframework.web.socket.messaging.WebSocketStompClient
 import org.springframework.web.socket.sockjs.client.SockJsClient
 import org.springframework.web.socket.sockjs.client.WebSocketTransport
 import java.lang.reflect.Type
+import java.nio.charset.Charset
+import java.security.Principal
+import java.util.*
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
+
 @RunWith(SpringRunner::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("insecure")
 class WordWebsocketTests {
 
     @LocalServerPort
@@ -64,6 +72,17 @@ class WordWebsocketTests {
     class WordSession(port: Int, client: WebSocketStompClient, expectedNewWordCount: Int) {
         val allHandler = WordHandler(1)
         val newHandler = WordHandler(expectedNewWordCount)
+
+        fun getHeaders(): WebSocketHttpHeaders {
+            val auth = "user:password"
+            val encodedAuth = Base64.getEncoder().encode(auth.toByteArray(Charset.forName("US-ASCII")))
+            val authHeader = "Basic " + String(encodedAuth)
+            val headers = WebSocketHttpHeaders()
+            headers.set("Authorization", authHeader)
+            headers.contentType = MediaType.APPLICATION_FORM_URLENCODED
+            return headers
+        }
+
         val session = client
             .connect("ws://localhost:$port/words", WordHandler(0))
             .get(5, TimeUnit.SECONDS)
@@ -80,7 +99,7 @@ class WordWebsocketTests {
     @Test
     @DirtiesContext
     fun controllerAddToRepository() {
-        wordController.addWord("a")
+        wordController.addWord("a", Principal { "test" })
         assertEquals(setOf("a"), wordRepository.all())
     }
 
@@ -140,8 +159,8 @@ class WordWebsocketTests {
         val session = WordSession(port!!, stompClient(), 2)
         session.subscribe()
 
-        wordController.addWord("server1")
-        wordController.addWord("server2")
+        wordController.addWord("server1", Principal { "test" })
+        wordController.addWord("server2", Principal { "test" })
         session.newHandler.await()
 
         assertEquals(setOf("server1", "server2"), session.newHandler.wordsHandled())
@@ -163,8 +182,8 @@ class WordWebsocketTests {
         other.send("other1")
         other.send("other2")
 
-        wordController.addWord("server1")
-        wordController.addWord("server2")
+        wordController.addWord("server1", Principal { "test" })
+        wordController.addWord("server2", Principal { "test" })
 
         session.newHandler.await()
 
