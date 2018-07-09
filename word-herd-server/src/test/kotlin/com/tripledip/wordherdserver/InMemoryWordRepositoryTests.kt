@@ -1,9 +1,8 @@
 package com.tripledip.wordherdserver
 
-import org.junit.Assert.*
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.junit4.SpringRunner
 
@@ -11,22 +10,44 @@ import org.springframework.test.context.junit4.SpringRunner
 @SpringBootTest
 class InMemoryWordRepositoryTests {
 
-    @Autowired
-    lateinit var wordRepository: InMemoryWordRepository
+    class TestWordHandler : WordRepository.WordHandler {
+        val wordsHandled: MutableSet<String> = HashSet()
+
+        override fun onWordAdded(word: String) {
+            wordsHandled.add(word)
+        }
+    }
 
     @Test
     fun all() {
-        wordRepository.add("a")
-        wordRepository.add("a")
-        wordRepository.add("b")
-        assertEquals(setOf("a", "b"), wordRepository.all())
+        val wordHandler = TestWordHandler()
+        val repository = InMemoryWordRepository(wordHandler)
+
+        repository.add("a")
+        repository.add("a")
+        repository.add("b")
+        assertThat(repository.all()).containsExactly("a", "b")
     }
 
     @Test
     fun add() {
-        assertTrue(wordRepository.add("a"))
-        assertFalse(wordRepository.add("a"))
-        assertTrue(wordRepository.add("b"))
+        val wordHandler = TestWordHandler()
+        val repository = InMemoryWordRepository(wordHandler)
+
+        assertThat(repository.add("a")).isTrue()
+        assertThat(repository.add("a")).isFalse()
+        assertThat(repository.add("b")).isTrue()
+    }
+
+    @Test
+    fun handle() {
+        val wordHandler = TestWordHandler()
+        val repository = InMemoryWordRepository(wordHandler)
+
+        repository.add("a")
+        repository.add("a")
+        repository.add("b")
+        assertThat(wordHandler.wordsHandled).containsExactly("a", "b")
     }
 
 }

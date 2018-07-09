@@ -5,44 +5,47 @@ import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.messaging.simp.annotation.SubscribeMapping
 import org.springframework.stereotype.Controller
 import org.springframework.stereotype.Repository
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RestController
 import java.security.Principal
-import java.util.concurrent.ConcurrentSkipListSet
-
-interface WordRepository {
-    fun all(): Set<String>
-    fun add(word: String): Boolean
-}
+import java.util.concurrent.ConcurrentHashMap
 
 @Repository
-class InMemoryWordRepository : WordRepository {
-    private val words: MutableSet<String> = ConcurrentSkipListSet()
-    override fun all(): Set<String> = words.toSet()
-    override fun add(word: String): Boolean = words.add(word)
-}
+class WordRepositoryRegistry(val template: SimpMessagingTemplate) {
+    private val repositories: MutableMap<String, WordRepository> = ConcurrentHashMap()
 
-@RestController
-class AuthenticationChecker {
-    @GetMapping("/checkAuth")
-    fun checkAuth(principal: Principal): String {
-        println("principal: $principal")
-        return "If you can read this, you are authenticated."
+    class WordHandlerMessenger(val user: String, val template: SimpMessagingTemplate) : WordRepository.WordHandler {
+        override fun onWordAdded(word: String) {
+            println("on word added: $word")
+            template.convertAndSendToUser(user, "/topic/new", listOf(word))
+        }
     }
+
+    fun getRepository(user: String): WordRepository =
+        if (repositories.containsKey(user)) {
+            repositories.get(user)!!
+        } else {
+            val repository = InMemoryWordRepository(WordHandlerMessenger(user, template))
+            repositories.put(user, repository)
+            repository
+        }
 }
 
 @Controller
-class WordController(val wordRepository: WordRepository, val template: SimpMessagingTemplate) {
+class WordController(val wordRepositoryRegistry: WordRepositoryRegistry) {
     @SubscribeMapping("/all")
     fun startSubscription(principal: Principal): List<String> {
-        println("principal: $principal")
-        return wordRepository.all().toList()
+        val user = principal.name;
+        println("start subscription for $user")
+
+        val repository = wordRepositoryRegistry.getRepository(user)
+        return repository.all().toList()
     }
 
     @MessageMapping("/add")
-    fun addWord(word: String, principal: Principal): List<String> {
-        println("principal: $principal")
-        if (wordRepository.add(word)) template.convertAndSend("/topic/new", listOf(word))
-        return listOf(word)
+    fun addWord(word: String, principal: Principal) {
+        val user = principal.name;
+        println("add word $word for $user")
+
+        val repository = wordRepositoryRegistry.getRepository(user)
+        repository.add(word)
     }
 }

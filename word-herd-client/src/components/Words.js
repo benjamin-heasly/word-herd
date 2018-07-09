@@ -25,7 +25,7 @@ class Words extends Component {
       case '/app/all':
         this.setState({words: msg});
         break;
-      case '/topic/new':
+      case '/user/topic/new':
         this.setState({words: this.state.words.concat(msg)});
         break;
       default:
@@ -77,7 +77,7 @@ class Words extends Component {
     const logoutUrl = `${process.env.REACT_APP_WORD_HERD_API_ROOT}/logout`;
 
     return (<div className="Words">
-      <SockJsClient url={websocketUrl} topics={['/app/all', '/topic/new']} onMessage={this.handleMessage} onConnect={() => {
+      <SockJsClient url={websocketUrl} topics={['/app/all', '/user/topic/new']} onMessage={this.handleMessage} onConnect={() => {
           this.setState({connected: true})
         }} onDisconnect={() => {
           this.setState({connected: false})

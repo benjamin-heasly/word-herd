@@ -1,5 +1,6 @@
 package com.tripledip.wordherdserver
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
@@ -50,7 +51,7 @@ class SecurityConfig {
 
 @Configuration
 @EnableWebSocketMessageBroker
-class WebsocketConfig : WebSocketMessageBrokerConfigurer {
+class WebsocketConfig(@Value("client.allowed.origin") val allowedOrigin: String) : WebSocketMessageBrokerConfigurer {
 
     val handshakeHandler = object : DefaultHandshakeHandler() {
         override fun determineUser(
@@ -69,7 +70,7 @@ class WebsocketConfig : WebSocketMessageBrokerConfigurer {
         registry
             .addEndpoint("/words")
             .setHandshakeHandler(handshakeHandler)
-            .setAllowedOrigins("http://localhost:3000", "http://lvh.me:8080")
+            .setAllowedOrigins(allowedOrigin)
             .withSockJS()
     }
 }
