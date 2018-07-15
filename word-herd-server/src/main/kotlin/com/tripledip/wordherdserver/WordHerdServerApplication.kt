@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Profile
+import org.springframework.core.env.Environment
 import org.springframework.http.server.ServerHttpRequest
 import org.springframework.messaging.simp.config.MessageBrokerRegistry
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -28,25 +28,25 @@ fun main(args: Array<String>) {
 @Configuration
 class SecurityConfig {
     @Bean
-    @Profile("default")
-    fun webSecurityConfigurerAdapter() = object : WebSecurityConfigurerAdapter() {
-        override fun configure(http: HttpSecurity) {
-            http.authorizeRequests()
-                .antMatchers("/", "/static/**", "/favicon.ico").permitAll()
-                .anyRequest().authenticated()
-                .and().csrf().ignoringAntMatchers("/logout")
-                .and().oauth2Login().loginPage("/").defaultSuccessUrl("/", true)
-                .and().logout().logoutSuccessUrl("/")
+    fun webSecurityConfigurerAdapter(environment: Environment) =
+        if (environment.acceptsProfiles("insecure")) {
+            object : WebSecurityConfigurerAdapter() {
+                override fun configure(http: HttpSecurity) {
+                    http.authorizeRequests().anyRequest().permitAll()
+                }
+            }
+        } else {
+            object : WebSecurityConfigurerAdapter() {
+                override fun configure(http: HttpSecurity) {
+                    http.authorizeRequests()
+                        .antMatchers("/", "/static/**", "/favicon.ico", "/actuator/health").permitAll()
+                        .anyRequest().authenticated()
+                        .and().csrf().ignoringAntMatchers("/logout")
+                        .and().oauth2Login().loginPage("/").defaultSuccessUrl("/", true)
+                        .and().logout().logoutSuccessUrl("/")
+                }
+            }
         }
-    }
-
-    @Bean
-    @Profile("insecure")
-    fun insecureWebSecurityConfigurerAdapter() = object : WebSecurityConfigurerAdapter() {
-        override fun configure(http: HttpSecurity) {
-            http.authorizeRequests().anyRequest().permitAll()
-        }
-    }
 }
 
 @Configuration

@@ -1,5 +1,6 @@
 package com.tripledip.wordherdserver
 
+import org.jboss.logging.Logger
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.messaging.simp.annotation.SubscribeMapping
@@ -10,11 +11,15 @@ import java.util.concurrent.ConcurrentHashMap
 
 @Repository
 class WordRepositoryRegistry(val template: SimpMessagingTemplate) {
+
     private val repositories: MutableMap<String, WordRepository> = ConcurrentHashMap()
 
-    class WordHandlerMessenger(val user: String, val template: SimpMessagingTemplate) : WordRepository.WordHandler {
+    inner class WordHandlerMessenger(val user: String, val template: SimpMessagingTemplate) :
+        WordRepository.WordHandler {
+        private val log = Logger.getLogger(WordRepositoryRegistry::class.java)
+
         override fun onWordAdded(word: String) {
-            println("on word added: $word")
+            log.info("word added: $word")
             template.convertAndSendToUser(user, "/topic/new", listOf(word))
         }
     }
@@ -31,10 +36,12 @@ class WordRepositoryRegistry(val template: SimpMessagingTemplate) {
 
 @Controller
 class WordController(val wordRepositoryRegistry: WordRepositoryRegistry) {
+    private val log = Logger.getLogger(WordController::class.java)
+
     @SubscribeMapping("/all")
     fun startSubscription(principal: Principal): List<String> {
         val user = principal.name;
-        println("start subscription for $user")
+        log.info("start subscription for user: $user")
 
         val repository = wordRepositoryRegistry.getRepository(user)
         return repository.all().toList()
@@ -43,7 +50,7 @@ class WordController(val wordRepositoryRegistry: WordRepositoryRegistry) {
     @MessageMapping("/add")
     fun addWord(word: String, principal: Principal) {
         val user = principal.name;
-        println("add word $word for $user")
+        log.info("add word $word for $user")
 
         val repository = wordRepositoryRegistry.getRepository(user)
         repository.add(word)
