@@ -5,11 +5,15 @@ buildscript {
     }
     repositories {
         mavenCentral()
+        maven {
+            url = "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
         classpath("org.jetbrains.kotlin:kotlin-allopen:${kotlinVersion}")
+        classpath("gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.20.1")
     }
 }
 
@@ -18,6 +22,7 @@ apply plugin: 'kotlin-spring'
 apply plugin: 'eclipse'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
+apply plugin: 'com.palantir.docker'
 
 group = 'com.tripledip'
 version = '0.0.1-SNAPSHOT'
@@ -46,6 +51,13 @@ processResources {
     }
 }
 processResources.dependsOn(buildClient)
+
+docker {
+    dependsOn build
+    name = "ninjaben/${bootJar.baseName}"
+    files bootJar.archivePath
+    buildArgs(['JAR_FILE': "${bootJar.archiveName}"])
+}
 
 repositories {
     mavenCentral()
